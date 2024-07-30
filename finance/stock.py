@@ -23,6 +23,7 @@ def fetch_stock_price(tickers:str):
         
         ticker_type = _get_ticker_type(symbol)
         price = -1
+        current_time = ''
         # if _is_market_close() == True:
         #     data = _ticker_price_by_vnd(symbol)
         #     if data != None:
@@ -33,12 +34,12 @@ def fetch_stock_price(tickers:str):
             data = _ticker_price_by_entrade(symbol, ticker_type=ticker_type, interval=i)
         if data != None:
             price = data[0]['close'] if ticker_type == 'index' else data[0]['close'] * 1000
-
+            current_time = data[0]['datetime']
         currency = 'VND'
         if ticker_type == 'index':
             currency = ' '
         
-        list_prices.append({'ticker': symbol, 'price': price, 'currency': currency})
+        list_prices.append({'ticker': symbol, 'price': price, 'updated_time': current_time, 'currency': currency})
 
     return list_prices
 
