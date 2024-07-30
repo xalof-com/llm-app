@@ -9,7 +9,7 @@ KẾT HỢP MÔ HÌNH NGÔN NGỮ LỚN (LLM) VÀ RAG (RETRIEVAL AUGMENTED GENER
 ![alt text](img/tong-quan.png)
 
 ## II. Sơ đồ workflow 
-![alt text](img/workflow.png)
+![alt text](img/workflow_2.png)
 
 ## III. Một số hình ảnh demo:
 
