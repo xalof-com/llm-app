@@ -12,7 +12,6 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain.chains.sql_database.query import create_sql_query_chain
-from langchain.chains.openai_tools import create_extraction_chain_pydantic
 
 from finance.stock import fetch_stock_price
 from finance.gold import sjc_gold_price
