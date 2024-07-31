@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+# from pydantic import BaseModel, Field
+from langchain_core.pydantic_v1 import BaseModel, Field
 from typing import Type
 
 from langchain.tools import BaseTool
@@ -8,20 +9,25 @@ from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain.chains.combine_documents import create_stuff_documents_chain
 # from langchain.chains.retrieval_qa.base import RetrievalQA
-
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+from langchain.chains.sql_database.query import create_sql_query_chain
+from langchain.chains.openai_tools import create_extraction_chain_pydantic
 
 from finance.stock import fetch_stock_price
 from finance.gold import sjc_gold_price
 from datetime import datetime
 from ai.rag_db import SingletonRagDB_FF8, SingletonRagDB_PNTT, SingletonRagDB_BDS
 from ai.llm import SingletonChatLLM
+from database import get_mysqldb
+from ai.prompt_templates import answer_sql_prompt, write_sql_prompt, sql_few_shot_prompt
 
 import os
+import re
 import json
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
-
 
 
 # Define tool functions
@@ -29,12 +35,10 @@ load_dotenv(find_dotenv())
 def get_current_time_tool(*args, **kwargs) -> str:
     return datetime.now().strftime("%H:%M")
 
-# def get_stock_price_tool(ticker:str) -> dict:
-#     payload = fetch_stock_price(ticker)
-#     return payload
 
 def get_sjc_gold_price_tool(*args, **kwargs):
     return {'price': sjc_gold_price()}
+
 
 def get_rag_qa_tool(query, **kwargs):
     
@@ -143,12 +147,49 @@ def get_rag_qa_tool(query, **kwargs):
     return {'answer': response['answer']}
     
 
+def get_data_from_mysqldb_tool(query, **kwargs):
+    db = get_mysqldb()
+    if db != None:
+        chatllm = SingletonChatLLM()
+        llm = chatllm.get_llm()
+        sql_prompt = write_sql_prompt()
+
+        few_shot_prompt = sql_few_shot_prompt()
+        # print(few_shot_prompt.format(input="How many artists are there?", top_k=3, table_info="foo"))
+
+        write_sql_chain = create_sql_query_chain(llm, db, prompt=few_shot_prompt)
+
+        # write_sql_chain = (
+        #     RunnablePassthrough.assign(table_info=lambda x: db.get_table_info())
+        #     | sql_prompt.partial(top_k=5)
+        #     | llm.bind(stop=["\nSQLResult:"])
+        #     | StrOutputParser()
+        # )
+
+        # sql_response = write_sql_chain.invoke({'question': query})
+        # print(sql_response)
+
+        answer_prompt = answer_sql_prompt()
+
+        answer_chain = (
+            RunnablePassthrough.assign(query=write_sql_chain).assign(result=lambda x: db.run_no_throw(re.findall(r"```sql(.*)```", x['query'].replace('\n', ' ').strip())[0]))
+            # RunnablePassthrough.assign(query=write_sql_chain).assign(result=lambda x: db.run_no_throw(x['query']))
+            # | answer_prompt
+            # | llm
+            # | StrOutputParser()
+        )
+        response = answer_chain.invoke({"question": query})
+
+        return response
+
+
+#==================================================================================================
 # class AnswerWithSource(BaseModel):
 #     answer:str = Field(description = "The final answer to respond to the user")
 #     source:str = Field(description = "The source file that contain the answer to the question. Only include source file if it contains relevant information")
 #     page:int = Field(description = "The page number of source that contain the answer to the question. Only include page file if it contains relevant information")
 
-
+#*****************************************************************************
 class CurrentStockPriceInput(BaseModel):
     ticker:str = Field(description='The ticker symbol of the stock(s) or market index')
 
@@ -162,7 +203,8 @@ class CurrentStockPriceTool(BaseTool):
     def _run(self, ticker:str):
         price = fetch_stock_price(ticker)
         return price
-    
+
+#*****************************************************************************
 class RAGQuestionAnswerInput(BaseModel):
     query:str = Field(description="The query or input string of the human")
 
@@ -176,4 +218,23 @@ class RAGQuestionAnswerTool(BaseTool):
 
     def _run(self, query:str):
         response = get_rag_qa_tool(query, db_name=self.db_name)
+        return response
+
+#*****************************************************************************
+class SQLTableName(BaseModel):
+    name: str = Field(description="Name of table in SQL database.")
+
+
+class SQLQueryInput(BaseModel):
+    query:str = Field(description="The query or input string of the human")
+
+class SQLQueryTool(BaseTool):
+    name:str = "sql_query_tool"
+    description:str = """
+        Hữu ích khi bạn muốn trả lời các câu hỏi liên quan đến truy vấn dữ liệu từ database: kênh bán hàng, sàn giao dịch, sản phẩm
+    """
+    args_schema: Type[BaseModel] = SQLQueryInput
+
+    def _run(self, query:str):
+        response = get_data_from_mysqldb_tool(query)
         return response
