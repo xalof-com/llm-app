@@ -58,7 +58,9 @@ if __name__ == '__main__':
     
     src_dir = f"{ROOT_PATH}/data_src/LEGAL"
     rag_db_dir = f"{ROOT_PATH}/ragdb"
-
+    if os.path.exists(rag_db_dir) == False:
+        os.makedirs(rag_db_dir, exist_ok=True)
+    
     vector_store = os.getenv('RAG_DB')
     
     db_dir = f"{rag_db_dir}/{vector_store.lower()}db_bds2023"
