@@ -125,7 +125,7 @@ def sql_few_shot_prompt():
             "query": "SELECT COUNT(*) FROM channels"
         },
         {
-            "input": "Có bao nhiêu chanels của sàn SHOPEE, LAZADA",
+            "input": "Có bao nhiêu kênh (chanels) của sàn (exchange) SHOPEE, LAZADA",
             "query": "SELECT exchange, COUNT(id) FROM channels WHERE exchange IN ('SHOPEE', 'LAZADA') GROUP BY exchange"
         },
         {
@@ -155,7 +155,7 @@ def sql_few_shot_prompt():
     ]
 
     sql_example_prompt = PromptTemplate.from_template("User input: {input}\nSQL query: {query}")
-    few_shot_prompt = FewShotPromptTemplate(
+    prompt = FewShotPromptTemplate(
         examples=sql_examples,
         example_prompt=sql_example_prompt,
         prefix="".join(prefix_messages),
@@ -163,7 +163,7 @@ def sql_few_shot_prompt():
         input_variables=["input", "top_k", "table_info"],
     )
 
-    return few_shot_prompt
+    return prompt
 
 
 def answer_sql_prompt():

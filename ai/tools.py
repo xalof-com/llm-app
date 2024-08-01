@@ -171,16 +171,27 @@ def get_data_from_mysqldb_tool(query, **kwargs):
         answer_prompt = answer_sql_prompt()
 
         answer_chain = (
-            RunnablePassthrough.assign(query=write_sql_chain).assign(result=lambda x: db.run_no_throw(re.findall(r"```sql(.*)```", x['query'].replace('\n', ' ').strip())[0]))
-            # RunnablePassthrough.assign(query=write_sql_chain).assign(result=lambda x: db.run_no_throw(x['query']))
+            # RunnablePassthrough.assign(query=write_sql_chain).assign(result=lambda x: db.run_no_throw(re.findall(r"```sql(.*)```", x['query'].replace('\n', ' ').strip())[0]))
+            RunnablePassthrough.assign(query=write_sql_chain).assign(result=lambda x: db.run_no_throw(_clean_sql_string(x['query'])))
             # | answer_prompt
             # | llm
             # | StrOutputParser()
         )
+
         response = answer_chain.invoke({"question": query})
+        print(response)
 
         return response
 
+def _clean_sql_string(sql:str):
+    for s in ["SQLQuery:", "SQL Query:", "SQLquery:", "SQL query:"]:
+        if s in sql:
+            sql = sql.replace(s, "")
+
+    sql = sql.strip().replace('\n', ' ')
+    if "```sql" in sql:
+        sql = re.findall(r"```sql(.*)```", sql)[0]
+    return sql
 
 #==================================================================================================
 # class AnswerWithSource(BaseModel):
