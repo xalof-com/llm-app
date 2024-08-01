@@ -34,6 +34,7 @@ sentence-transformers = "^3.0.1"
 faiss-cpu = "^1.8.0.post1"
 slack-bolt = "^1.19.1"
 pymysql = "^1.1.1"
+tzdata = "^2024.1"
 
 
 [build-system]
