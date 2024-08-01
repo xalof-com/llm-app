@@ -103,9 +103,9 @@ def write_sql_prompt():
 
 def sql_few_shot_prompt():
     prefix_messages = [
-        "You are a SQLite expert. "
+        "You are a MySQL expert. "
         "Given an input question, "
-        "create a syntactically correct SQLite query to run. "
+        "create a syntactically correct MySQL query to run. "
         "Unless otherwise specificed, do not return more than {top_k} rows."
         "\n\n"
         "Here is the relevant table info:\n"
