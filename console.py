@@ -1,9 +1,10 @@
-import os
+import os, time
 from dotenv import load_dotenv, find_dotenv
 
 
 from langchain_core.messages import AIMessage, HumanMessage
 from ai.utils import get_rag_agent_executor
+from ai.helpers import print_console_ai_message
 
 load_dotenv(find_dotenv())
 
@@ -18,11 +19,9 @@ def chat_console():
             if query.lower() in ["exit", "quit"]:
                 print("AI: See you!")
                 break
+            
             response = agent_exec.invoke({"input": query, "chat_history": chat_hist})
-            # response = agent_exec.stream({"input": query, "chat_history": chat_hist})
-            
-            
-            print(f"AI: {response['output']}", end='\n\n')
+            print_console_ai_message(response_chunks=response["output"])
 
             # Update history
             chat_hist.append(HumanMessage(content=query))
@@ -32,6 +31,7 @@ def chat_console():
             import traceback
             print(traceback.print_exc())
             break
+
 
 
 if __name__ == '__main__':
