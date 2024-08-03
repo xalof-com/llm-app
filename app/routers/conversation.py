@@ -15,7 +15,7 @@ router = APIRouter(
     prefix="/ai"
 )
 
-agent_exec = get_rag_agent_executor()
+agent_exec = get_rag_agent_executor(llm_name=os.getenv('CHAT_LLM_NAME'))
 chat_hist = []
 
 @router.post("/conversation")

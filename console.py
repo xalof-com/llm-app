@@ -11,7 +11,7 @@ load_dotenv(find_dotenv())
 os.environ['LLM_APP_ROOT_PATH'] = os.path.dirname(os.path.abspath(__file__))
 
 def chat_console():
-    agent_exec = get_rag_agent_executor()
+    agent_exec = get_rag_agent_executor(llm_name=os.getenv('CHAT_LLM_NAME'))
     chat_hist = []
     while True:
         try:

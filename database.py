@@ -29,3 +29,14 @@ def get_mysqldb(pool_size:int=5):
         print(err)
     
     return None
+
+def get_sqlitedb():
+    try:
+        sqlite_file = f"{os.getenv('LLM_APP_ROOT_PATH')}/sqlite/{os.getenv('SQLITE_DB_FILE')}"
+        sqlite_uri = f"sqlite:///{sqlite_file}"
+        db = SQLDatabase.from_uri(sqlite_uri)
+        return db
+    except Exception as err:
+        print(err)
+    
+    return None

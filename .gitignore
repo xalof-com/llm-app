@@ -5,6 +5,7 @@ __pycache__/
 .venv/
 data_src/
 ragdb/
+sqlite/
 
 # Node artifact files
 node_modules/
