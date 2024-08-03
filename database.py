@@ -40,3 +40,8 @@ def get_sqlitedb():
         print(err)
     
     return None
+
+def get_db():
+    if os.getenv('CURRENT_DB_ENGINE').lower() == 'mysql':
+        return get_mysqldb()
+    return get_sqlitedb()

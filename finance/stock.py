@@ -5,7 +5,7 @@ import re, json
 from typing import Any
 
 def fetch_stock_price(tickers:str):
-    print(type(tickers))
+    # print(type(tickers))
     if tickers.startswith('[') and tickers.endswith(']'):
         tickers = json.loads(tickers.replace("'", '"'))
     elif tickers.startswith('{"symbols":'):

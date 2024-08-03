@@ -18,7 +18,7 @@ from finance.gold import sjc_gold_price
 from datetime import datetime
 from ai.rag_db import SingletonRagDB_FF8, SingletonRagDB_PNTT, SingletonRagDB_BDS
 from ai.llm import SingletonChatLLM
-from database import get_mysqldb, get_sqlitedb
+from database import get_db
 from ai.prompt_templates import answer_sql_prompt, write_sql_prompt, sql_few_shot_prompt
 
 import os
@@ -147,7 +147,7 @@ def get_rag_qa_tool(query, **kwargs):
     
 
 def get_data_from_mysqldb_tool(query, **kwargs):
-    db = get_sqlitedb()
+    db = get_db()
     if db != None:
         chatllm = SingletonChatLLM()
         llm = chatllm.get_llm()
@@ -182,6 +182,8 @@ def get_data_from_mysqldb_tool(query, **kwargs):
         print(response)
 
         return response
+    
+    return {'result': ""}
 
 def _clean_sql_string(sql:str):
     for s in ["SQLQuery:", "SQL Query:", "SQLquery:", "SQL query:"]:

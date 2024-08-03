@@ -3,6 +3,7 @@ from langchain.agents import AgentExecutor, create_react_agent
 from ai.tools import get_current_time_tool, get_sjc_gold_price_tool, CurrentStockPriceTool, RAGQuestionAnswerTool, SQLQueryTool
 from ai.llm import SingletonChatLLM
 from ai.prompt_templates import react_tools_chat_prompt
+import os, requests
 
 def get_rag_agent_executor(llm_name:str):
     chatllm = SingletonChatLLM(llm_name=llm_name)
@@ -22,17 +23,17 @@ def get_rag_agent_executor(llm_name:str):
         ),
         CurrentStockPriceTool(),
         RAGQuestionAnswerTool(
-            name="question_answering:ff8",
+            name="rag_question_answer:ff8",
             db_name="chromadb_ff8",
             description="Hữu ích khi bạn muốn trả lời các câu hỏi liên quan đến game 'Final Fantasy 8'"
         ),    
         RAGQuestionAnswerTool(
-            name="question_answering:pntt",
+            name="rag_question_answer:pntt",
             db_name="chromadb_pntt",
             description="Hữu ích khi bạn muốn trả lời các câu hỏi liên quan đến truyện 'PNTT'"
         ),
         RAGQuestionAnswerTool(
-            name="question_answering:bds-2023",
+            name="rag_question_answer:bds-2023",
             db_name="chromadb_bds2023",
             description="Hữu ích khi bạn muốn trả lời các câu hỏi liên quan đến luật kinh doand bất động sản(BDS)"
         ),
@@ -46,3 +47,20 @@ def get_rag_agent_executor(llm_name:str):
     agent_exec = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
     return agent_exec
+
+def record_chat_message(chat_time:str,
+                        channel_name:str="",
+                        human_message:str="",
+                        bot_message:str=""):
+
+    deployment_id = os.getenv('GOOGLE_APP_SCRIPT_DEPLOYMENT_ID')
+    url = f"https://script.google.com/macros/s/{deployment_id}/exec"
+
+    payload = {
+        "time": chat_time,
+        "channel": channel_name,
+        "human_message": human_message,
+        "bot_message": bot_message
+    }
+    response = requests.post(url, data=payload)
+

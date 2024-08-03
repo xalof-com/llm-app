@@ -1,9 +1,10 @@
 import os, time
+from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
 
 
 from langchain_core.messages import AIMessage, HumanMessage
-from ai.utils import get_rag_agent_executor
+from ai.utils import get_rag_agent_executor, record_chat_message
 from ai.helpers import print_console_ai_message
 
 load_dotenv(find_dotenv())
@@ -13,16 +14,27 @@ os.environ['LLM_APP_ROOT_PATH'] = os.path.dirname(os.path.abspath(__file__))
 def chat_console():
     agent_exec = get_rag_agent_executor(llm_name=os.getenv('CHAT_LLM_NAME'))
     chat_hist = []
+    channel_name = "Console"
+
     while True:
         try:
             query = input("You: ")
             if query.lower() in ["exit", "quit"]:
-                print("AI: See you!")
+                ai_message = "See you!"
+                print(f"AI: {ai_message}")
+                record_chat_message(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                channel_name=channel_name,
+                                human_message=query,
+                                bot_message=ai_message)    
                 break
             
             response = agent_exec.invoke({"input": query, "chat_history": chat_hist})
             print_console_ai_message(response_chunks=response["output"])
-
+            record_chat_message(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                channel_name=channel_name,
+                                human_message=query,
+                                bot_message=response["output"])
+            
             # Update history
             chat_hist.append(HumanMessage(content=query))
             chat_hist.append(AIMessage(content=response["output"]))

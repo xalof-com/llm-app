@@ -2,11 +2,12 @@ from fastapi import APIRouter, Body, Request
 from fastapi.responses import StreamingResponse
 from typing import Any, Optional, Annotated
 import os
+from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
 
 from langchain_core.messages import AIMessage, HumanMessage
-from ai.utils import get_rag_agent_executor
-from ai.helpers import send_stream_ai_message, get_fake_message
+from ai.helpers import send_stream_ai_message
+from ai.utils import get_rag_agent_executor, record_chat_message
 
 
 load_dotenv(find_dotenv())
@@ -17,6 +18,7 @@ router = APIRouter(
 
 agent_exec = get_rag_agent_executor(llm_name=os.getenv('CHAT_LLM_NAME'))
 chat_hist = []
+channel_name = 'WebChat UI'
 
 @router.post("/conversation")
 async def conversation(payload:Annotated[Any, Body()], request:Request) -> Any:
@@ -26,6 +28,11 @@ async def conversation(payload:Annotated[Any, Body()], request:Request) -> Any:
     
     agent_response = agent_exec.invoke({"input": query, "chat_history": chat_hist})
     print(f"AI: {agent_response['output']}")
+
+    record_chat_message(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                channel_name=channel_name,
+                                human_message=query,
+                                bot_message=agent_response["output"])
 
     chat_hist.append(HumanMessage(content=query))
     chat_hist.append(AIMessage(content=agent_response["output"]))
