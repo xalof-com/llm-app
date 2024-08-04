@@ -15,6 +15,8 @@ def chat_console():
     agent_exec = get_rag_agent_executor(llm_name=os.getenv('CHAT_LLM_NAME'))
     chat_hist = []
     channel_name = "Console"
+    
+    is_record_message = eval(os.getenv('RECORD_MESSAGES', 'True'))
 
     while True:
         try:
@@ -29,11 +31,14 @@ def chat_console():
                 break
             
             response = agent_exec.invoke({"input": query, "chat_history": chat_hist})
+            
+            if is_record_message:
+                record_chat_message(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                    channel_name=channel_name,
+                                    human_message=query,
+                                    bot_message=response["output"])
+                
             print_console_ai_message(response_chunks=response["output"])
-            record_chat_message(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                channel_name=channel_name,
-                                human_message=query,
-                                bot_message=response["output"])
             
             # Update history
             chat_hist.append(HumanMessage(content=query))

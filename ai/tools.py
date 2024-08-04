@@ -13,9 +13,12 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain.chains.sql_database.query import create_sql_query_chain
 from langchain_community.document_loaders import WebBaseLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain.embeddings import CacheBackedEmbeddings
+from langchain.storage import LocalFileStore
+from langchain_groq import ChatGroq
 
 from finance.stock import fetch_stock_price
 from finance.gold import sjc_gold_price
@@ -73,9 +76,9 @@ def get_rag_qa_tool(query, **kwargs):
     # retriever = ragdb.get_db().as_retriever(search_type='similarity')
     # retriever = ragdb.get_db().as_retriever(search_type='mmr')
 
-    chatllm = SingletonChatLLM()
+    chatllm = SingletonChatLLM(llm_name=os.getenv('CHAT_LLM_NAME'))
     llm = chatllm.get_llm()
-
+    
     # # Contextual question prompt
     # # Helps AI figure out that it should refomulate the question based on the chat history
     # aware_retriever_system_messages = [
@@ -98,9 +101,9 @@ def get_rag_qa_tool(query, **kwargs):
     qa_system_messages = [
         "You are a good assistant for question-answering tasks by using Vietnamese language only. "
         # "Use the same language as in the question to answer. "
-        "You MUST use the following pieces of retrieved context to answer the question. "
+        "You MUST use the following pieces of retrieved context below to answer the question. "
         "If you don't know the answer with the retrieved context, just say that you don't know. "
-        "Use 5 sentences maximum and keep the answer consise. "
+        "Use 5 to 10 sentences maximum and keep the answer consise. "
         "Additionally, please include the source, page of the documents of retrieved context that related to the anwser."
         
         # "Bạn là trợ lý cho các nhiệm vụ trả lời câu hỏi bằng Tiếng Việt (Vietnamese), "
@@ -119,7 +122,7 @@ def get_rag_qa_tool(query, **kwargs):
     ]
 
     qa_prompt = ChatPromptTemplate.from_messages([
-        ("system", qa_system_messages),
+        ("system", "".join(qa_system_messages)),
         # MessagesPlaceholder("chat_history"),
         ("human", "{input}")
         
@@ -165,15 +168,15 @@ def get_rag_qa_tool(query, **kwargs):
     print(f".::. RAG :", response)
     print("===================================")   
 
-    return {'answer': response['answer']}
+    return {'answer': response['answer'].strip("\n\n")}
     
 
 def get_data_from_mysqldb_tool(query, **kwargs):
     db = get_db()
     if db != None:
-        chatllm = SingletonChatLLM()
+        chatllm = SingletonChatLLM(llm_name=os.getenv('CHAT_LLM_NAME'))
         llm = chatllm.get_llm()
-        sql_prompt = write_sql_prompt()
+        # sql_prompt = write_sql_prompt()
 
         few_shot_prompt = sql_few_shot_prompt()
         # print(few_shot_prompt.format(input="How many artists are there?", top_k=3, table_info="foo"))
@@ -190,7 +193,7 @@ def get_data_from_mysqldb_tool(query, **kwargs):
         # sql_response = write_sql_chain.invoke({'question': query})
         # print(sql_response)
 
-        answer_prompt = answer_sql_prompt()
+        # answer_prompt = answer_sql_prompt()
 
         answer_chain = (
             # RunnablePassthrough.assign(query=write_sql_chain).assign(result=lambda x: db.run_no_throw(re.findall(r"```sql(.*)```", x['query'].replace('\n', ' ').strip())[0]))
@@ -220,17 +223,26 @@ def _clean_sql_string(sql:str):
 def _get_data_from_url_tool(source_name:str):
     urls_file = f"{os.getenv('LLM_APP_ROOT_PATH')}/data_src/WEB/urls.json"
 
+    cache_dir = f"{os.getenv('LLM_APP_ROOT_PATH')}/cache/web_urls/{source_name}"
+    if os.path.exists(cache_dir) == False:
+        os.makedirs(cache_dir, exist_ok=True)
+
     sources = None
     with open(urls_file, mode="r", encoding="utf-8") as f:
         sources = json.load(f)
         f.close()
 
-    embedding_model = os.getenv('HF_EMBEDDING_MODEL_NAME')
-
     loader = WebBaseLoader(sources[source_name]['urls'])
-    doc_chunks = loader.load_and_split(RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0))
+    doc_chunks = loader.load_and_split(RecursiveCharacterTextSplitter())
 
-    chroma_db = Chroma.from_documents(doc_chunks, embedding=HuggingFaceEmbeddings(model_name=embedding_model))
+    store = LocalFileStore(cache_dir)
+    embedding_model = HuggingFaceEmbeddings(model_name=os.getenv('HF_EMBEDDING_MODEL_NAME'))
+
+    cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+        embedding_model, store, namespace=os.getenv('HF_EMBEDDING_MODEL_NAME')
+    )
+
+    chroma_db = Chroma.from_documents(doc_chunks, cached_embedder)
     return chroma_db
 
 #==================================================================================================

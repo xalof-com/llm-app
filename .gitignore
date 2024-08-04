@@ -6,6 +6,7 @@ __pycache__/
 data_src/
 ragdb/
 sqlite/
+cache/
 
 # Node artifact files
 node_modules/

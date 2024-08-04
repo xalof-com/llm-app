@@ -130,27 +130,27 @@ def sql_few_shot_prompt():
             "query": "SELECT exchange, COUNT(id) FROM channels WHERE exchange IN ('SHOPEE', 'LAZADA') GROUP BY exchange"
         },
         {
-            "input": "Có bao nhiêu đơn hàng của tất cả sàn",
-            "query": "SELECT ch.exchange, COUNT(o.id) FROM orders AS o JOIN channels AS ch ON o.channel_id = ch.id GROUP BY ch.exchange"
+            "input": "Có bao nhiêu đơn hàng thành công (complete) của tất cả sàn",
+            "query": "SELECT ch.exchange, COUNT(o.id) FROM orders AS o JOIN channels AS ch ON o.channel_id = ch.id WHERE o.order_status IN ('COMPLETED', 'complete', 'delivered') GROUP BY ch.exchange"
         },
         {
             "input": "Có bao nhiêu đơn hàng thành công (complete) của tất cả sàn từ 2022-01-01 đến 2022-08-30",
-            "query": "SELECT ch.exchange, COUNT(o.id) FROM orders AS o JOIN channels AS ch ON o.channel_id = ch.id WHERE o.created_at BETWEEN '2022-01-01' AND '2022-08-30' GROUP BY ch.exchange"
+            "query": "SELECT ch.exchange, COUNT(o.id) FROM orders AS o JOIN channels AS ch ON o.channel_id = ch.id WHERE o.order_status IN ('COMPLETED', 'complete', 'delivered') AND o.created_at BETWEEN '2022-01-01' AND '2022-08-30' GROUP BY ch.exchange"
         },
         {
             "input": "Có bao nhiêu đơn hàng thành công (complete) của sàn SHOPEE, LAZADA",
             "query": "SELECT ch.exchange, COUNT(o.id) FROM orders AS o JOIN channels AS ch ON o.channel_id = ch.id WHERE ch.exchange IN ('SHOPEE', 'LAZADA') AND o.order_status IN ('COMPLETED', 'complete', 'delivered') GROUP BY ch.exchange"
         },
         {
-            "input": "Doanh thu theo từng sàn",
-            'query': "SELECT ch.exchange, SUM(oi.qty_ordered * oi.price) FROM (order_items AS oi JOIN orders AS o ON o.order_sn = oi.order_sn) JOIN channels AS ch ON o.channel_id = ch.id WHERE o.order_status IN ('COMPLETED', 'complete', 'delivered') GROUP BY ch.exchange"
+            "input": "Tính doanh thu của sàn: SHOPEE, LAZADA từ 2022-01-01 đến 2022-08-30",
+            'query': "SELECT ch.exchange, SUM(oi.qty_ordered * oi.price) FROM (order_items AS oi JOIN orders AS o ON o.order_sn = oi.order_sn) JOIN channels AS ch ON o.channel_id = ch.id WHERE ch.exchange IN ('SHOPEE', 'LAZADA') AND o.order_status IN ('COMPLETED', 'complete', 'delivered') GROUP BY ch.exchange"
+        },        
+        {
+            "input": "Tính tổng doanh thu của tất cả các sàn từ 2022-01-01 đến 2022-08-30",
+            'query': "SELECT SUM(oi.qty_ordered * oi.price) AS revenue FROM (order_items AS oi JOIN orders AS o ON o.order_sn = oi.order_sn) JOIN channels AS ch ON o.channel_id = ch.id WHERE o.order_status IN ('COMPLETED', 'complete', 'delivered') AND o.created_at BETWEEN '2022-01-01' AND '2022-08-30'"
         },
         {
-            "input": "Tổng doanh thu của tất cả các sàn",
-            'query': "SELECT SUM(oi.qty_ordered * oi.price) AS total_revenue FROM (order_items AS oi JOIN orders AS o ON o.order_sn = oi.order_sn) JOIN channels AS ch ON o.channel_id = ch.id WHERE o.order_status IN ('COMPLETED', 'complete', 'delivered')"
-        },
-        {
-            "input": "Doanh thu của từng sàn từ 2022-01-01 đến 2022-08-30",
+            "input": "Tính doanh thu của từng sàn từ 2022-01-01 đến 2022-08-30",
             'query': "SELECT ch.exchange, SUM(oi.qty_ordered * oi.price) AS revenue FROM (order_items AS oi JOIN orders AS o ON o.order_sn = oi.order_sn) JOIN channels AS ch ON o.channel_id = ch.id WHERE o.order_status IN ('COMPLETED', 'complete', 'delivered') AND o.created_at BETWEEN '2022-01-01' AND '2022-08-30' GROUP BY ch.exchange"
         }
     ]
