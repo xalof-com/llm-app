@@ -12,6 +12,10 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain.chains.sql_database.query import create_sql_query_chain
+from langchain_community.document_loaders import WebBaseLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 
 from finance.stock import fetch_stock_price
 from finance.gold import sjc_gold_price
@@ -43,22 +47,30 @@ def get_rag_qa_tool(query, **kwargs):
     
     root_path = os.getenv('LLM_APP_ROOT_PATH')
     rag_db_name = kwargs.get('db_name', 'chromadb_ff8')
+    from_url = kwargs.get('from_url', False)
+    
     # db_dir = f"{root_path}/ragdb/{rag_db_name.lower()}db_ff8"
 
     db_dir = os.path.join(root_path, 'ragdb', f"{rag_db_name}")
     embedding_model = os.getenv('HF_EMBEDDING_MODEL_NAME')
 
-    if 'ff8' in rag_db_name:
-        ragdb = SingletonRagDB_FF8(db_dir, embedding_model)
-    elif 'pntt' in rag_db_name:
-        ragdb = SingletonRagDB_PNTT(db_dir, embedding_model)
+    if from_url == False:
+        if 'ff8' in rag_db_name:
+            ragdb = SingletonRagDB_FF8(db_dir, embedding_model)
+        elif 'pntt' in rag_db_name:
+            ragdb = SingletonRagDB_PNTT(db_dir, embedding_model)
+        else:
+            ragdb = SingletonRagDB_BDS(db_dir, embedding_model)
+
+        retriever = ragdb.get_db().as_retriever(search_type='similarity')
     else:
-        ragdb = SingletonRagDB_BDS(db_dir, embedding_model)
+        ragdb = _get_data_from_url_tool(rag_db_name)
+        retriever = ragdb.as_retriever(search_type='similarity')
 
     # retriever = ragdb.get_db().as_retriever(search_type='similarity', search_kwargs={'k': 3})
     # retriever = ragdb.get_db().as_retriever(search_type='similarity_score_threshold',
     #                                search_kwargs={'score_threshold': 0.4})
-    retriever = ragdb.get_db().as_retriever(search_type='similarity')
+    # retriever = ragdb.get_db().as_retriever(search_type='similarity')
     # retriever = ragdb.get_db().as_retriever(search_type='mmr')
 
     chatllm = SingletonChatLLM()
@@ -113,15 +125,25 @@ def get_rag_qa_tool(query, **kwargs):
         
     ])
 
-    document_combine_prompt = PromptTemplate(
-        template="""
-            Content: {page_content}\n
-            Nguồn: {source} \n
-            Trang: {page} \n
-        """,
-        input_variables=['page_content', 'source', 'page']
+    if from_url == False:
+        document_combine_prompt = PromptTemplate(
+            template="""
+                Content: {page_content}\n
+                Nguồn: {source} \n
+                Trang: {page} \n
+            """,
+            input_variables=['page_content', 'source', 'page']
 
-    )
+        )
+    else:
+        document_combine_prompt = PromptTemplate(
+            template="""
+                Content: {page_content}\n
+                Nguồn: {source} \n
+            """,
+            input_variables=['page_content', 'source']
+
+        )
 
     qa_doc_chain = create_stuff_documents_chain(llm, qa_prompt, document_prompt=document_combine_prompt) # combine_doc_chain
     
@@ -195,6 +217,22 @@ def _clean_sql_string(sql:str):
         sql = re.findall(r"```sql(.*)```", sql)[0]
     return sql
 
+def _get_data_from_url_tool(source_name:str):
+    urls_file = f"{os.getenv('LLM_APP_ROOT_PATH')}/data_src/WEB/urls.json"
+
+    sources = None
+    with open(urls_file, mode="r", encoding="utf-8") as f:
+        sources = json.load(f)
+        f.close()
+
+    embedding_model = os.getenv('HF_EMBEDDING_MODEL_NAME')
+
+    loader = WebBaseLoader(sources[source_name]['urls'])
+    doc_chunks = loader.load_and_split(RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0))
+
+    chroma_db = Chroma.from_documents(doc_chunks, embedding=HuggingFaceEmbeddings(model_name=embedding_model))
+    return chroma_db
+
 #==================================================================================================
 # class AnswerWithSource(BaseModel):
 #     answer:str = Field(description = "The final answer to respond to the user")
@@ -223,13 +261,14 @@ class RAGQuestionAnswerInput(BaseModel):
 class RAGQuestionAnswerTool(BaseTool):
     name:str = "question_answering"
     db_name:str = "chromadb_ff8"
+    from_url:bool = False
     description:str = """
         Hữu ích khi bạn muốn trả lời các câu hỏi liên quan đến game 'Final Fantasy 8'
     """
     args_schema: Type[BaseModel] = RAGQuestionAnswerInput
 
     def _run(self, query:str):
-        response = get_rag_qa_tool(query, db_name=self.db_name)
+        response = get_rag_qa_tool(query, db_name=self.db_name, from_url=self.from_url)
         return response
 
 #*****************************************************************************

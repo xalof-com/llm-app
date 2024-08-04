@@ -3,7 +3,7 @@ from langchain.agents import AgentExecutor, create_react_agent
 from ai.tools import get_current_time_tool, get_sjc_gold_price_tool, CurrentStockPriceTool, RAGQuestionAnswerTool, SQLQueryTool
 from ai.llm import SingletonChatLLM
 from ai.prompt_templates import react_tools_chat_prompt
-import os, requests
+import os, json, requests
 
 def get_rag_agent_executor(llm_name:str):
     chatllm = SingletonChatLLM(llm_name=llm_name)
@@ -37,8 +37,16 @@ def get_rag_agent_executor(llm_name:str):
             db_name="chromadb_bds2023",
             description="Hữu ích khi bạn muốn trả lời các câu hỏi liên quan đến luật kinh doand bất động sản(BDS)"
         ),
+        RAGQuestionAnswerTool(
+            name="rag_question_answer:vinalink",
+            db_name="vinalink",
+            from_url=True,
+            description="Hữu ích khi bạn muốn trả lời các câu hỏi liên quan đến các khóa học của vinalink: google ads, tiktok marketing, AI. trainer..."
+        ),
         SQLQueryTool()
     ]
+
+    tools.extend(_get_url_web_tool())
 
     react_prompt = react_tools_chat_prompt()
 
@@ -47,6 +55,28 @@ def get_rag_agent_executor(llm_name:str):
     agent_exec = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
     return agent_exec
+
+def _get_url_web_tool():
+    urls_file = f"{os.getenv('LLM_APP_ROOT_PATH')}/data_src/WEB/urls.json"
+    
+    sources = None
+    
+    with open(urls_file, mode="r", encoding="utf-8") as f:
+        sources = json.load(f)
+        f.close()
+
+    tools = []
+    for src_name, value in sources.items():
+        description = value['description']
+        tool = RAGQuestionAnswerTool(
+            name=f"rag_question_answer:{src_name}",
+            db_name=src_name,
+            from_url=True,
+            description=description
+        )
+        tools.append(tool)
+    return tools
+
 
 def record_chat_message(chat_time:str,
                         channel_name:str="",
@@ -62,5 +92,9 @@ def record_chat_message(chat_time:str,
         "human_message": human_message,
         "bot_message": bot_message
     }
-    response = requests.post(url, data=payload)
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1788.0'
+    }
+    response = requests.post(url, data=payload, headers=headers)
 
