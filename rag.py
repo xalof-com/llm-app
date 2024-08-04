@@ -4,7 +4,7 @@ from tqdm import tqdm
 from langchain_chroma import Chroma
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 
 
@@ -31,7 +31,8 @@ def _create_vector_store_db(doc_pages:list, db_dir:str, vector_store:str='chroma
     if embedding_model == None:
         embedding_model = 'multi-qa-mpnet-base-cos-v1'
 
-    txt_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    # txt_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    txt_splitter = RecursiveCharacterTextSplitter()
     texts = txt_splitter.split_documents(doc_pages)
             
     embedding = HuggingFaceEmbeddings(model_name=embedding_model)
