@@ -163,12 +163,12 @@ def get_rag_qa_tool(query, **kwargs):
     #         'page': doc.metadata.get('page', 'Unknown')
     #     }
     #     doc.metadata = new_metadata
-
+    response['answer'] = response['answer'].strip("\n\n")
     print("\n\n===================================")
     print(f".::. RAG :", response)
     print("===================================")   
 
-    return {'answer': response['answer'].strip("\n\n")}
+    return {'answer': response['answer']}
     
 
 def get_data_from_mysqldb_tool(query, **kwargs):
