@@ -4,7 +4,7 @@ from tqdm import tqdm
 from langchain_chroma import Chroma
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 
 
@@ -31,7 +31,8 @@ def _create_vector_store_db(doc_pages:list, db_dir:str, vector_store:str='chroma
     if embedding_model == None:
         embedding_model = 'multi-qa-mpnet-base-cos-v1'
 
-    txt_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    # txt_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    txt_splitter = RecursiveCharacterTextSplitter()
     texts = txt_splitter.split_documents(doc_pages)
             
     embedding = HuggingFaceEmbeddings(model_name=embedding_model)
@@ -56,14 +57,14 @@ def _load_vector_store_db(db_dir:str, vector_store:str='chroma', embedding_model
 
 if __name__ == '__main__':
     
-    src_dir = f"{ROOT_PATH}/data_src/PNTT"
+    src_dir = f"{ROOT_PATH}/data_src/LEGAL"
     rag_db_dir = f"{ROOT_PATH}/ragdb"
     if os.path.exists(rag_db_dir) == False:
         os.makedirs(rag_db_dir, exist_ok=True)
     
     vector_store = os.getenv('RAG_DB')
     
-    db_dir = f"{rag_db_dir}/{vector_store.lower()}db_pntt"
+    db_dir = f"{rag_db_dir}/{vector_store.lower()}db_bds2023"
 
     embedding_model = os.getenv('HF_EMBEDDING_MODEL_NAME')
     # embedding_model = 'multi-qa-MiniLM-L6-cos-v1'
