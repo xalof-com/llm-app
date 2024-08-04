@@ -56,14 +56,14 @@ def _load_vector_store_db(db_dir:str, vector_store:str='chroma', embedding_model
 
 if __name__ == '__main__':
     
-    src_dir = f"{ROOT_PATH}/data_src/PNTT"
+    src_dir = f"{ROOT_PATH}/data_src/LEGAL"
     rag_db_dir = f"{ROOT_PATH}/ragdb"
     if os.path.exists(rag_db_dir) == False:
         os.makedirs(rag_db_dir, exist_ok=True)
     
     vector_store = os.getenv('RAG_DB')
     
-    db_dir = f"{rag_db_dir}/{vector_store.lower()}db_pntt"
+    db_dir = f"{rag_db_dir}/{vector_store.lower()}db_bds2023"
 
     embedding_model = os.getenv('HF_EMBEDDING_MODEL_NAME')
     # embedding_model = 'multi-qa-MiniLM-L6-cos-v1'
