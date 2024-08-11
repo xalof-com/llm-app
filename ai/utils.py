@@ -4,6 +4,8 @@ from ai.tools import get_current_time_tool, get_sjc_gold_price_tool, CurrentStoc
 from ai.llm import SingletonChatLLM
 from ai.prompt_templates import react_tools_chat_prompt
 import os, json, requests
+import config
+
 
 def get_rag_agent_executor(llm_name:str):
     chatllm = SingletonChatLLM(llm_name=llm_name)
@@ -57,7 +59,7 @@ def get_rag_agent_executor(llm_name:str):
     return agent_exec
 
 def _get_url_web_tool():
-    urls_file = f"{os.getenv('LLM_APP_ROOT_PATH')}/data_src/WEB/urls.json"
+    urls_file = f"{config.APP_ROOT_PATH}/data_src/WEB/urls.json"
     
     sources = None
     
