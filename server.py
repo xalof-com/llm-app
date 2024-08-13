@@ -6,7 +6,7 @@ import os
 from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv())
-os.environ['LLM_APP_ROOT_PATH'] = os.path.dirname(os.path.abspath(__file__))
+# os.environ['LLM_APP_ROOT_PATH'] = os.path.dirname(os.path.abspath(__file__))
 
 app = FastAPI()
 origins = [
