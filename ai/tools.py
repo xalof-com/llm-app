@@ -27,6 +27,7 @@ from ai.rag_db import SingletonRagDB_FF8, SingletonRagDB_PNTT, SingletonRagDB_BD
 from ai.llm import SingletonChatLLM
 from database import get_db
 from ai.prompt_templates import answer_sql_prompt, write_sql_prompt, sql_few_shot_prompt
+import config
 
 import os
 import re
@@ -48,7 +49,7 @@ def get_sjc_gold_price_tool(*args, **kwargs):
 
 def get_rag_qa_tool(query, **kwargs):
     
-    root_path = os.getenv('LLM_APP_ROOT_PATH')
+    root_path = config.APP_ROOT_PATH
     rag_db_name = kwargs.get('db_name', 'chromadb_ff8')
     from_url = kwargs.get('from_url', False)
     
@@ -56,7 +57,7 @@ def get_rag_qa_tool(query, **kwargs):
 
     db_dir = os.path.join(root_path, 'ragdb', f"{rag_db_name}")
     embedding_model = os.getenv('HF_EMBEDDING_MODEL_NAME')
-
+    
     if from_url == False:
         if 'ff8' in rag_db_name:
             ragdb = SingletonRagDB_FF8(db_dir, embedding_model)
