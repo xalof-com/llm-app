@@ -6,7 +6,6 @@ from ai.prompt_templates import react_tools_chat_prompt
 import os, json, requests
 import config
 
-
 def get_rag_agent_executor(llm_name:str):
     chatllm = SingletonChatLLM(llm_name=llm_name)
     google_llm = chatllm.get_llm()
